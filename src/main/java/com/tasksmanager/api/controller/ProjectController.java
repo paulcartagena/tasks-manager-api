@@ -59,14 +59,14 @@ public class ProjectController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Delete project", description = "Deletes a project by id")
     public void deleteProject(@PathVariable Long projectId) {
-        projectService.deleteProject(projectId);
+        User currentUser = getCurrentUser();
+        projectService.deleteProject(projectId, currentUser);
     }
 
     @PostMapping("/{projectId}/members/{userId}")
     @Operation(summary = "Add member to project", description = "Adds a user as a member of the project")
     public ProjectResponseDTO addMember(@PathVariable Long projectId, @PathVariable Long userId) {
         User currentUser = getCurrentUser();
-
         return projectService.addMember(projectId, userId, currentUser);
     }
 
@@ -74,7 +74,8 @@ public class ProjectController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Remove member from project", description = "Removes a user from project")
     public void removeMember(@PathVariable Long projectId, @PathVariable Long userId) {
-        projectService.removeMember(projectId, userId);
+        User currentUser = getCurrentUser();
+        projectService.removeMember(projectId, userId, currentUser);
     }
 
     private User getCurrentUser() {

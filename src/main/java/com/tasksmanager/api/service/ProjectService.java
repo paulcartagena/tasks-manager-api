@@ -23,10 +23,14 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final AccessService accessService;
 
-    public ProjectService(ProjectRepository projectRepository, UserRepository userRepository) {
+    public ProjectService(ProjectRepository projectRepository,
+                          UserRepository userRepository,
+                          AccessService accessService) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
+        this.accessService = accessService;
     }
 
     @Transactional(readOnly = true)
@@ -36,9 +40,9 @@ public class ProjectService {
     }
 
     @Transactional(readOnly = true)
-    public ProjectResponseDTO findProjectById(Long projectId, User currenUser) {
-        Project project = getProjectById(projectId);
-        return buildResponse(project, currenUser);
+    public ProjectResponseDTO findProjectById(Long projectId, User currentUser) {
+        Project project = accessService.getProjectIfMember(projectId, currentUser);
+        return buildResponse(project, currentUser);
     }
 
     public ProjectResponseDTO createProject(ProjectRequestDTO projectRequestDTO, User owner) {
@@ -52,7 +56,7 @@ public class ProjectService {
     }
 
     public ProjectResponseDTO updateProject(Long projectId, ProjectRequestDTO projectRequestDTO, User currentUser) {
-        Project project = getProjectById(projectId);
+        Project project = accessService.getProjectIfOwner(projectId, currentUser);
 
         project.setName(projectRequestDTO.getName());
         project.setDescription(projectRequestDTO.getDescription());
@@ -61,13 +65,13 @@ public class ProjectService {
         return buildResponse(project, currentUser);
     }
 
-    public void deleteProject(Long idProject) {
-        Project project = getProjectById(idProject);
+    public void deleteProject(Long idProject, User currentUser) {
+        Project project = accessService.getProjectIfOwner(idProject, currentUser);
         projectRepository.delete(project);
     }
 
     public ProjectResponseDTO addMember(Long projectId, Long userId, User currentUser) {
-        Project project = getProjectById(projectId);
+        Project project = accessService.getProjectIfOwner(projectId, currentUser);
         User user = getUserById(userId);
 
         if (project.getMembers().contains(user)) {
@@ -79,8 +83,8 @@ public class ProjectService {
         return buildResponse(savedProject, currentUser);
     }
 
-    public void removeMember(Long projectId, Long userId) {
-        Project project = getProjectById(projectId);
+    public void removeMember(Long projectId, Long userId, User currentUser) {
+        Project project = accessService.getProjectIfOwner(projectId, currentUser);
         User user = getUserById(userId);
 
         project.getMembers().remove(user);
@@ -102,11 +106,6 @@ public class ProjectService {
                         .toList(),
                 role
         );
-    }
-
-    private Project getProjectById(Long projectId) {
-        return projectRepository.findById(projectId)
-                .orElseThrow(() ->  new ProjectNotFoundException("Project not found."));
     }
 
     private User getUserById(Long userId) {

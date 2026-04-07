@@ -6,6 +6,7 @@ import com.tasksmanager.api.exception.ProjectNotFoundException;
 import com.tasksmanager.api.exception.TaskNotFoundException;
 import com.tasksmanager.api.model.Project;
 import com.tasksmanager.api.model.Task;
+import com.tasksmanager.api.model.User;
 import com.tasksmanager.api.model.enums.TaskStatus;
 import com.tasksmanager.api.repository.ProjectRepository;
 import com.tasksmanager.api.repository.TaskRepository;
@@ -19,30 +20,33 @@ import java.util.List;
 public class TaskService {
 
     private final TaskRepository taskRepository;
-    private final ProjectRepository projectRepository;
+    private final AccessService accessService;
 
-    public TaskService(TaskRepository taskRepository, ProjectRepository projectRepository) {
+    public TaskService(TaskRepository taskRepository,
+                       AccessService accessService) {
         this.taskRepository = taskRepository;
-        this.projectRepository = projectRepository;
+        this.accessService = accessService;
     }
 
     @Transactional(readOnly = true)
-    public List<TaskResponseDTO> findAllTasks(Long projectId) {
-        Project project = getProjectById(projectId);
+    public List<TaskResponseDTO> findAllTasks(Long projectId, User currentUser) {
+        Project project = accessService.getProjectIfMember(projectId, currentUser);
         return taskRepository.findByProject(project)
                 .stream().map(this::buildTaskResponse).toList();
     }
 
     @Transactional(readOnly = true)
-    public TaskResponseDTO findTaskById(Long projectId, Long taskId) {
+    public TaskResponseDTO findTaskById(Long projectId, Long taskId, User currentUser) {
+        accessService.getProjectIfMember(projectId, currentUser);
         Task task = getTaskById(taskId);
         validateTaskBelongsToProject(task, projectId);
         return buildTaskResponse(task);
     }
 
-    public TaskResponseDTO createTask(Long projectId, TaskRequestDTO taskRequestDTO) {
+    public TaskResponseDTO createTask(Long projectId, TaskRequestDTO taskRequestDTO, User currentUser) {
+        Project project = accessService.getProjectIfMember(projectId,currentUser);
         Task task = new Task();
-        task.setProject(getProjectById(projectId));
+        task.setProject(project);
         task.setName(taskRequestDTO.getName());
         task.setDescription(taskRequestDTO.getDescription());
         task.setStatus(TaskStatus.TODO);
@@ -53,7 +57,8 @@ public class TaskService {
         return buildTaskResponse(savedTask);
     }
 
-    public TaskResponseDTO updateTask(Long projectId, Long taskId, TaskRequestDTO taskRequestDTO) {
+    public TaskResponseDTO updateTask(Long projectId, Long taskId, TaskRequestDTO taskRequestDTO, User currentUser) {
+        accessService.getProjectIfMember(projectId, currentUser);
         Task task = getTaskById(taskId);
         validateTaskBelongsToProject(task, projectId);
 
@@ -67,7 +72,8 @@ public class TaskService {
         return buildTaskResponse(task);
     }
 
-    public void deleteTask(Long projectId, Long taskId) {
+    public void deleteTask(Long projectId, Long taskId, User currentUser) {
+        accessService.getProjectIfMember(projectId, currentUser);
         Task task = getTaskById(taskId);
         validateTaskBelongsToProject(task, projectId);
         taskRepository.delete(task);
@@ -82,11 +88,6 @@ public class TaskService {
                 task.getStatus(),
                 task.getDueDate(),
                 task.getFilePath());
-    }
-
-    private Project getProjectById(Long projectId) {
-        return projectRepository.findById(projectId)
-                .orElseThrow(() -> new ProjectNotFoundException("Project not found."));
     }
 
     private Task getTaskById(Long taskId) {
