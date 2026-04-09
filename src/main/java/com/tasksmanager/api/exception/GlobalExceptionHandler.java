@@ -1,5 +1,6 @@
 package com.tasksmanager.api.exception;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -8,15 +9,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.util.logging.Logger;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse handleGeneral(Exception ex) {
-        return buildErrorResponse(500, "Internal server error.");
-    }
 
     @ExceptionHandler(BadCredentialsException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
@@ -56,13 +52,27 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
-        return buildErrorResponse(400, ex.getMessage());
+        return buildErrorResponse(409, ex.getMessage());
     }
 
+    @ExceptionHandler(MemberAlreadyExistsException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleMemberAlreadyExists(MemberAlreadyExistsException ex) {
-        return buildErrorResponse(400, ex.getMessage());
+        return buildErrorResponse(409, ex.getMessage());
+    }
+
+    @ExceptionHandler(ProjectHasTasksException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleProjectHasTasks(ProjectHasTasksException ex) {
+        return buildErrorResponse(409, ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorResponse handleGeneral(Exception ex) {
+        return buildErrorResponse(500, "Internal server error.");
     }
 
     private ErrorResponse buildErrorResponse(int status, String message) {

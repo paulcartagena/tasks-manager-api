@@ -4,18 +4,18 @@ import com.tasksmanager.api.dto.MemberDTO;
 import com.tasksmanager.api.dto.ProjectRequestDTO;
 import com.tasksmanager.api.dto.ProjectResponseDTO;
 import com.tasksmanager.api.exception.MemberAlreadyExistsException;
-import com.tasksmanager.api.exception.ProjectNotFoundException;
+import com.tasksmanager.api.exception.ProjectHasTasksException;
 import com.tasksmanager.api.exception.UserNotFoundException;
 import com.tasksmanager.api.model.Project;
 import com.tasksmanager.api.model.User;
 import com.tasksmanager.api.model.enums.ProjectRole;
 import com.tasksmanager.api.repository.ProjectRepository;
+import com.tasksmanager.api.repository.TaskRepository;
 import com.tasksmanager.api.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @Transactional
@@ -23,14 +23,17 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final TaskRepository taskRepository;
     private final AccessService accessService;
 
     public ProjectService(ProjectRepository projectRepository,
                           UserRepository userRepository,
-                          AccessService accessService) {
+                          AccessService accessService,
+                          TaskRepository taskRepository) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.accessService = accessService;
+        this.taskRepository = taskRepository;
     }
 
     @Transactional(readOnly = true)
@@ -65,8 +68,13 @@ public class ProjectService {
         return buildResponse(project, currentUser);
     }
 
-    public void deleteProject(Long idProject, User currentUser) {
-        Project project = accessService.getProjectIfOwner(idProject, currentUser);
+    public void deleteProject(Long projectId, User currentUser) {
+        Project project = accessService.getProjectIfOwner(projectId, currentUser);
+
+        if (taskRepository.existsByProjectId(project.getId())) {
+            throw new ProjectHasTasksException("Project cannot be deleted because it has tasks.");
+        }
+
         projectRepository.delete(project);
     }
 

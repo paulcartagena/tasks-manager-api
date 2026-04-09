@@ -1,11 +1,13 @@
 package com.tasksmanager.api.repository;
 
-import com.tasksmanager.api.model.Project;
 import com.tasksmanager.api.model.Task;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
-    List<Task> findByProject(Project project);
+    List<Task> findAllByProjectId(Long projectId);
+    Optional<Task> findByIdAndProjectId(Long taskId, Long projectId);
+    boolean existsByProjectId(Long projectId);
 }
