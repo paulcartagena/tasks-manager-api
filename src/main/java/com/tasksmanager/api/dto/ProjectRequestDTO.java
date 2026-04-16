@@ -7,7 +7,6 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@AllArgsConstructor
 public class ProjectRequestDTO {
     private String name;
     private String description;
