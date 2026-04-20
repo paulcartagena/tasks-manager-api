@@ -46,11 +46,11 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Login with an existing user")
     public TokenResponseDTO login(@Valid @RequestBody LoginRequestDTO reqDTO) {
-        authenticationManager.authenticate(
+        var auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(reqDTO.getEmail(), reqDTO.getPassword())
         );
 
-        UserDetails userDetails = authService.loadUserByUsername(reqDTO.getEmail());
+        UserDetails userDetails = (User) auth.getPrincipal();
         String token = jwtService.generateToken(userDetails);
 
         return new TokenResponseDTO(token);
